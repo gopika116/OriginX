@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>OriginX - Detection Result</title>
+
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='css/result.css') }}">
+
+</head>
+
+
+<body>
+
+
+<aside class="sidebar">
+
+    <div class="brand">
+
+        <div class="symbol">⬡</div>
+
+        <div>
+            <strong>OriginX</strong>
+            <small>DEEPFAKE DETECTION</small>
+        </div>
+
+    </div>
+
+
+    <nav>
+
+        <a class="active">⌂ Dashboard</a>
+
+        <a>▧ Image Detection</a>
+
+        <a>▷ Video Analysis</a>
+
+        <a>◌ Audio Verification</a>
+
+        <a>◷ History</a>
+
+        <a>⚙ Settings</a>
+
+    </nav>
+
+
+    <div class="side-message">
+
+        <strong>
+            Stay Informed.<br>
+            Stay Protected.
+        </strong>
+
+        <p>
+            Detect. Explain. Trust.
+        </p>
+
+    </div>
+
+</aside>
+
+
+
+<main>
+
+
+<header class="page-header">
+
+    <div>
+
+        <small>
+            ORIGINX / ANALYSIS
+        </small>
+
+        <h1>
+            Detection Result
+        </h1>
+
+        <p>
+            Dashboard › Image Detection › Result
+        </p>
+
+    </div>
+
+
+    <a href="{{ url_for('index') }}"
+       class="back">
+        ← Back to Dashboard
+    </a>
+
+</header>
+
+
+
+<section class="result-container">
+
+
+<!-- PROGRESS -->
+
+<div class="progress">
+
+{% for step in [
+    "Upload",
+    "Preprocessing",
+    "Analyzing",
+    "Explaining",
+    "Completed"
+] %}
+
+<div class="step">
+
+    <div class="dot">
+
+        {% if loop.last %}
+            ✓
+        {% else %}
+            ✓
+        {% endif %}
+
+    </div>
+
+    <strong>
+        {{ loop.index }}. {{ step }}
+    </strong>
+
+    <span>
+
+        {% if loop.last %}
+            Detection Finished
+        {% else %}
+            Completed
+        {% endif %}
+
+    </span>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+
+
+<!-- MAIN RESULTS -->
+
+<div class="results-grid">
+
+
+<!-- ORIGINAL -->
+
+<div class="image-card">
+
+    <h3>
+        Original Image
+    </h3>
+
+    <img
+        src="{{ url_for(
+            'static',
+            filename='uploads/' + filename
+        ) }}"
+        alt="Original Image"
+    >
+
+</div>
+
+
+
+<!-- GRADCAM -->
+
+<div class="image-card">
+
+    <h3>
+        Grad-CAM Heatmap
+    </h3>
+
+    {% if gradcam_error %}
+    <div style="padding: 40px; text-align: center; background: rgba(255,255,255,0.05); border-radius: 8px;">
+        <p>Explanation could not be generated for this image.</p>
+    </div>
+    {% else %}
+    <div class="heatmap">
+
+        <img
+            src="{{ url_for(
+                'static',
+                filename='uploads/' + gradcam_filename
+            ) }}"
+        >
+
+        <div class="heat-overlay"></div>
+
+    </div>
+
+    <div class="legend">
+
+        Low Influence
+
+        <span></span>
+
+        High Influence
+
+    </div>
+    {% endif %}
+
+</div>
+
+
+
+<!-- VERDICT -->
+
+<div class="verdict">
+
+    {% if prediction == 'FAKE' %}
+    <div class="danger" style="color: #ff4a4a;">
+        ⚠ POTENTIAL DEEPFAKE DETECTED
+    </div>
+    {% elif prediction == 'REAL' %}
+    <div class="danger" style="color: #4aff8f;">
+        ✓ LIKELY AUTHENTIC
+    </div>
+    {% else %}
+    <div class="danger" style="color: #ffaa00;">
+        ? UNCERTAIN RESULT
+    </div>
+    {% endif %}
+
+
+    <div class="verdict-flex">
+
+        <div>
+
+            <h2>
+                {{ prediction }}
+            </h2>
+
+            <h3>
+                {{ confidence }}%
+            </h3>
+
+            <small>
+                CONFIDENCE SCORE
+            </small>
+
+        </div>
+
+
+        <div class="confidence-ring">
+
+            <b>
+                {{ confidence }}%
+            </b>
+
+            <small>
+                Confidence
+            </small>
+
+        </div>
+
+    </div>
+
+
+    <div class="risk">
+
+        Risk Level
+
+        <b>
+            {{ risk }}
+        </b>
+
+    </div>
+
+
+    <div class="prediction">
+
+        <strong>
+            Model Prediction
+        </strong>
+
+        <p>
+            {% if prediction == 'FAKE' %}
+            Potentially manipulated based on the model's analysis.
+            {% elif prediction == 'REAL' %}
+            Likely authentic based on the model's analysis.
+            {% else %}
+            Insufficient or contradictory evidence to make a reliable prediction.
+            {% endif %}
+        </p>
+
+    </div>
+
+</div>
+
+</div>
+
+
+
+<!-- EXPLANATION -->
+
+<div class="bottom-grid">
+
+
+<div class="explanation">
+
+    <h2>
+        {% if prediction == 'FAKE' %}
+        Why was this image classified as fake?
+        {% elif prediction == 'REAL' %}
+        Why was this image classified as real?
+        {% else %}
+        Why is this image uncertain?
+        {% endif %}
+    </h2>
+
+    <p>
+        {% if prediction == 'FAKE' %}
+        The model detected visual patterns that contributed strongly to the FAKE prediction.
+        {% elif prediction == 'REAL' %}
+        The model found visual patterns that were more consistent with the REAL class.
+        {% else %}
+        The model produced closely matched REAL and FAKE probabilities, or global and local regions conflicted, so the result cannot be considered reliable.
+        {% endif %}
+        <br><br>
+        <b>Most influential region:</b> {{ influential_region }}
+        <br><br>
+        <small style="opacity: 0.8;">
+        {% if prediction == 'UNCERTAIN' %}
+        Grad-CAM shows the regions that influenced the model's decision.
+        {% else %}
+        Grad-CAM highlights the region that contributed most strongly to the model's prediction. These highlighted regions should be treated as model evidence, not definitive forensic proof.
+        {% endif %}
+        </small>
+    </p>
+
+</div>
+
+
+
+<div class="details">
+
+    <h2>
+        Analysis Details
+    </h2>
+
+    <p>
+        <span>Model Used</span>
+        <b>Vision Transformer (ViT)</b>
+    </p>
+
+    <p>
+        <span>Input Type</span>
+        <b>Image</b>
+    </p>
+
+    <p>
+        <span>Explainability</span>
+        <b>Grad-CAM</b>
+    </p>
+
+    <p>
+        <span>Status</span>
+        <b>Completed</b>
+    </p>
+
+</div>
+
+</div>
+
+
+
+<!-- BUTTONS -->
+
+<div class="actions">
+
+    <button>
+        ⇩ Download Report
+    </button>
+
+    <a href="{{ url_for('index') }}">
+        ⟳ Analyze Another
+    </a>
+
+    <button class="primary">
+        ⌯ Share Result
+    </button>
+
+</div>
+
+
+</section>
+
+
+<footer>
+    <p style="font-size: 0.8rem; opacity: 0.7; max-width: 600px; margin: 0 auto 10px auto; text-align: center;">
+        Results are model-based predictions and may be affected by image quality, compression, or manipulation techniques not represented in the model's training data.
+    </p>
+    © 2026 OriginX. All rights reserved.
+</footer>
+
+
+</main>
+
+</body>
+
+</html>

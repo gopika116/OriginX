@@ -1,0 +1,8 @@
+flask
+torch
+transformers
+grad-cam
+opencv-python
+pillow
+numpy
+werkzeug

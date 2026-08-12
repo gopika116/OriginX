@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>OriginX - Deepfake Detection</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+
+<body>
+
+<header>
+
+    <div class="logo">
+
+        <div class="logo-symbol">⬡</div>
+
+        <div>
+            <h2>OriginX</h2>
+            <small>DEEPFAKE DETECTION</small>
+        </div>
+
+    </div>
+
+    <div class="system-status">
+
+        <span class="status-dot"></span>
+
+        SYSTEM READY
+
+    </div>
+
+</header>
+
+
+<main>
+
+<section class="hero">
+
+    <div class="hero-left">
+
+        <p class="eyebrow">
+            AI-POWERED MEDIA VERIFICATION
+        </p>
+
+        <h1>
+            Explainable
+            <span>Deepfake</span>
+            <br>
+            Detection System
+        </h1>
+
+        <p class="description">
+
+            Analyze manipulated images with confidence
+            scores, risk levels, and transparent visual
+            explanations.
+
+        </p>
+
+        <p class="tagline">
+            Detect. Explain. Trust.
+        </p>
+
+        <div class="stats">
+
+            <div>
+                <strong>AI</strong>
+                <small>Detection</small>
+            </div>
+
+            <div>
+                <strong>XAI</strong>
+                <small>Explanation</small>
+            </div>
+
+            <div>
+                <strong>CAM</strong>
+                <small>Visualization</small>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="upload-card">
+
+        <div class="card-top">
+
+            <div>
+
+                <span>STEP 01</span>
+
+                <h2>Upload Media</h2>
+
+            </div>
+
+            <div class="upload-icon">
+                ↑
+            </div>
+
+        </div>
+
+
+        <form method="POST"
+              enctype="multipart/form-data">
+
+
+            <label>
+                Select media type
+            </label>
+
+            <select name="media_type" class="select-box" style="appearance: none; -webkit-appearance: none; background-color: transparent; border: 1px solid #222; border-radius: 8px; color: white; cursor: pointer; outline: none;">
+                <option style="background-color: #111; color: white;" value="image">Image</option>
+                <option style="background-color: #111; color: white;" value="video">Video</option>
+                <option style="background-color: #111; color: white;" value="audio">Audio</option>
+            </select>
+
+
+            <label>
+                Choose image
+            </label>
+
+
+            <label class="drop-zone"
+                   for="fileInput">
+
+                <div class="upload-symbol">
+                    ＋
+                </div>
+
+                <div>
+
+                    <strong id="fileName">
+                        Drop image here or browse
+                    </strong>
+
+                    <small>
+                        Images, Video, or Audio
+                    </small>
+
+                </div>
+
+            </label>
+
+
+            <input
+                id="fileInput"
+                type="file"
+                name="file"
+                accept=".png,.jpg,.jpeg,.webp,.mp4,.avi,.mov,.mp3,.wav,.m4a"
+                hidden
+            >
+
+
+            {% if error %}
+
+            <div class="error">
+                {{ error }}
+            </div>
+
+            {% endif %}
+
+
+            <button class="analyze-btn"
+                    type="submit">
+
+                <span>
+                    Analyze Image
+                </span>
+
+                <span>
+                    →
+                </span>
+
+            </button>
+
+        </form>
+
+
+        <div class="secure">
+            ✓ Image securely processed by OriginX
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="features">
+
+    <div class="feature">
+
+        <span>01</span>
+
+        <div class="feature-icon">
+            ◉
+        </div>
+
+        <h3>
+            Image Detection
+        </h3>
+
+        <p>
+            Detect face swaps and manipulated images
+            with visual explanations.
+        </p>
+
+        <small>
+            AVAILABLE
+        </small>
+
+    </div>
+
+
+    <div class="feature">
+
+        <span>02</span>
+
+        <div class="feature-icon">
+            ◇
+        </div>
+
+        <h3>
+            Explainable Analysis
+        </h3>
+
+        <p>
+            Understand which regions influenced
+            the model's prediction.
+        </p>
+
+        <small>
+            GRAD-CAM
+        </small>
+
+    </div>
+
+
+    <div class="feature">
+
+        <span>03</span>
+
+        <div class="feature-icon">
+            ✦
+        </div>
+
+        <h3>
+            Confidence & Risk
+        </h3>
+
+        <p>
+            View prediction confidence and
+            risk classification.
+        </p>
+
+        <small>
+            INTEGRATED
+        </small>
+
+    </div>
+
+</section>
+
+</main>
+
+
+<footer>
+    © 2026 OriginX · Explainable Deepfake Detection
+</footer>
+
+
+<script>
+
+const input =
+    document.getElementById("fileInput");
+
+const fileName =
+    document.getElementById("fileName");
+
+input.addEventListener("change", function () {
+
+    if (this.files.length > 0) {
+
+        fileName.textContent =
+            this.files[0].name;
+
+    }
+
+});
+
+</script>
+
+</body>
+
+</html>
