@@ -1,0 +1,61 @@
+# OriginX_Video Configuration
+
+# Sampling settings
+sampling:
+  num_frames: 16
+  face_crop_margin: 0.25      # 25% margin expansion for square face crops
+  min_face_size: 48           # minimum crop size in pixels
+  target_crop_size: 224       # standardized size for model inputs
+  dnn_confidence_threshold: 0.5
+
+# Detector weights for final ensemble score (must sum to 1.0)
+ensemble:
+  weights:
+    vit_temporal: 0.40         # D1: deep representation & temporal sequence analysis
+    identity_consistency: 0.25 # D2: face swap identity drift / dual identity clusters
+    artifact_score: 0.15       # D3: handcrafted boundary blur, noise, and JPEG grids
+    temporal_consistency: 0.20 # D4: landmark jitter, EAR blinks, mouth-head motion
+  thresholds:
+    fake_threshold_t1: 0.60    # Fake if composite fake score >= T1
+    real_threshold_t2: 0.40    # Real if composite fake score <= T2
+                               # Uncertain if T2 < score < T1
+
+# D1 ViT + Temporal Aggregator
+vit_detector:
+  hf_model_name: "dima806/deepfake_vs_real_image_detection"
+  hidden_dim: 256
+  num_layers: 2
+  bidirectional: true
+  checkpoint_path: "models/bigru_attention.pt"
+  logistic_fallback_path: "models/logistic_fallback.pkl"
+
+# D2 FaceNet Identity Consistency
+identity_detector:
+  model_name: "vggface2"      # InceptionResnetV1 pretrained weights
+  cluster_dispersion_threshold: 0.65
+  drift_tolerance_threshold: 0.70
+
+# D3 Handcrafted Artifacts (Weights for sub-features)
+artifact_detector:
+  weights:
+    blur_ratio: 0.40          # High Laplacian variance ratio (crop vs outer ring) indicating blending
+    noise_residual: 0.35      # Unnatural lack of sensor noise / discrepancy vs background
+    jpeg_blocking: 0.25       # 8x8 DCT grid boundary discontinuities
+  blur_ratio_threshold: 1.8
+  noise_residual_threshold: 0.55
+  jpeg_blocking_threshold: 0.45
+
+# D4 Temporal & Physiological Consistency
+temporal_detector:
+  min_blink_rate: 6.0         # Blinks per minute (normal relaxed human: 12-20, abnormal < 6 or > 35)
+  max_blink_rate: 35.0
+  ear_threshold: 0.21         # Eye aspect ratio threshold for closed eyelid
+  jitter_threshold: 0.045     # Normalized landmark variance across frames indicating micro-instability
+  mouth_head_coherence_threshold: 0.35
+
+# Caffe Face Detector model URLs / paths
+caffe_face_detector:
+  prototxt: "models/caffe/deploy.prototxt"
+  caffemodel: "models/caffe/res10_300x300_ssd_iter_140000.caffemodel"
+  prototxt_url: "https://raw.githubusercontent.com/opencv/opencv/master/samples/dnn/face_detector/deploy.prototxt"
+  caffemodel_url: "https://raw.githubusercontent.com/opencv/opencv_3rdparty/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000.caffemodel"

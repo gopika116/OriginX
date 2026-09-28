@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# User uploads & generated temp files (preserve static/uploads folder)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Testing artifacts
+tests/sample_audio.wav
+tests/sample_test.jpg
+tests/sample_test.webp
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

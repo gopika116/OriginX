@@ -35,17 +35,17 @@
 
     <nav>
 
-        <a class="active">⌂ Dashboard</a>
+        <a href="{{ url_for('index') }}" class="active">⌂ Dashboard</a>
 
-        <a>▧ Image Detection</a>
+        <a href="{{ url_for('index') }}">▧ Image Detection</a>
 
-        <a>▷ Video Analysis</a>
+        <a href="{{ url_for('index') }}">▷ Video Analysis</a>
 
-        <a>◌ Audio Verification</a>
+        <a href="{{ url_for('index') }}">◌ Audio Verification</a>
 
-        <a>◷ History</a>
+        <a href="{{ url_for('index') }}">◷ History</a>
 
-        <a>⚙ Settings</a>
+        <a href="{{ url_for('index') }}">⚙ Settings</a>
 
     </nav>
 
@@ -66,7 +66,6 @@
 </aside>
 
 
-
 <main>
 
 
@@ -83,7 +82,7 @@
         </h1>
 
         <p>
-            Dashboard › Image Detection › Result
+            Dashboard › {{ media_type|capitalize }} Detection › Result
         </p>
 
     </div>
@@ -157,9 +156,20 @@
 <div class="image-card">
 
     <h3>
-        Original Image
+        Original Media Sample
     </h3>
 
+    {% if media_type == 'video' %}
+    <video controls style="width: 100%; border-radius: 8px;">
+        <source src="{{ url_for('static', filename='uploads/' + filename) }}">
+        Your browser does not support video play.
+    </video>
+    {% elif media_type == 'audio' %}
+    <audio controls style="width: 100%; margin-top: 20px;">
+        <source src="{{ url_for('static', filename='uploads/' + filename) }}">
+        Your browser does not support audio playback.
+    </audio>
+    {% else %}
     <img
         src="{{ url_for(
             'static',
@@ -167,6 +177,7 @@
         ) }}"
         alt="Original Image"
     >
+    {% endif %}
 
 </div>
 
@@ -180,9 +191,15 @@
         Grad-CAM Heatmap
     </h3>
 
-    {% if gradcam_error %}
+    {% if gradcam_error or not gradcam_filename %}
     <div style="padding: 40px; text-align: center; background: rgba(255,255,255,0.05); border-radius: 8px;">
-        <p>Explanation could not be generated for this image.</p>
+        <p>
+            {% if media_type == 'audio' %}
+            Spatial heatmaps are not applicable for raw audio. Acoustic spectral envelope analysis was performed.
+            {% else %}
+            Explanation heatmap could not be generated for this file.
+            {% endif %}
+        </p>
     </div>
     {% else %}
     <div class="heatmap">
@@ -193,8 +210,6 @@
                 filename='uploads/' + gradcam_filename
             ) }}"
         >
-
-        <div class="heat-overlay"></div>
 
     </div>
 
@@ -310,33 +325,91 @@
 
     <h2>
         {% if prediction == 'FAKE' %}
-        Why was this image classified as fake?
+        Why was this classified as fake?
         {% elif prediction == 'REAL' %}
-        Why was this image classified as real?
+        Why was this classified as real?
         {% else %}
-        Why is this image uncertain?
+        Why is this result uncertain?
         {% endif %}
     </h2>
 
     <p>
-        {% if prediction == 'FAKE' %}
-        The model detected visual patterns that contributed strongly to the FAKE prediction.
+        {% if video_summary %}
+        {{ video_summary }}
+        {% elif prediction == 'FAKE' %}
+        The model detected patterns that contributed strongly to the FAKE prediction.
         {% elif prediction == 'REAL' %}
-        The model found visual patterns that were more consistent with the REAL class.
+        The model found visual patterns that were consistent with authentic media.
         {% else %}
         The model produced closely matched REAL and FAKE probabilities, or global and local regions conflicted, so the result cannot be considered reliable.
         {% endif %}
         <br><br>
-        <b>Most influential region:</b> {{ influential_region }}
+        <b>Forensic Indicator:</b> {{ influential_region }}
         <br><br>
         <small style="opacity: 0.8;">
-        {% if prediction == 'UNCERTAIN' %}
-        Grad-CAM shows the regions that influenced the model's decision.
-        {% else %}
         Grad-CAM highlights the region that contributed most strongly to the model's prediction. These highlighted regions should be treated as model evidence, not definitive forensic proof.
-        {% endif %}
         </small>
     </p>
+
+    {% if evidence_list %}
+    <div style="margin-top: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+            <h3 style="font-size: 1.05rem; color: #00e5ff; margin: 0;">Multi-Criteria Forensic Scorecard</h3>
+            <span style="font-size: 0.75rem; color: #8e9bb0; text-transform: uppercase; letter-spacing: 0.5px;">Independent Metric Evaluations</span>
+        </div>
+        <p style="font-size: 0.8rem; color: #a0aec0; margin: 0 0 14px 0;">
+            Each forensic check produces an independent continuous quantitative score rather than a binary AND/OR gate.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            {% for item in evidence_list %}
+            {% set score_val = item.score if item.score is defined else (50.0 if item.result == 'ANOMALOUS' else 10.0) %}
+            {% set bar_color = '#ff3366' if score_val >= 60.0 else ('#ffab00' if score_val >= 35.0 else '#00e676') %}
+            {% set border_color = '#ff3366' if item.result in ['ANOMALOUS', 'IDENTITY DRIFT', 'SEAM ARTIFACTS', 'UNNATURAL NOISE', 'GRID DISRUPTION', 'ABNORMAL BLINKING', 'JITTER DETECTED'] else '#00e676' %}
+            
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.07); border-left: 4px solid {{ border_color }}; border-radius: 8px; padding: 12px 14px;">
+                <!-- Header row -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-weight: 600; font-size: 0.9rem; color: #ffffff;">{{ item.check }}</span>
+                        <span style="font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: rgba(0,0,0,0.3); color: {{ border_color }}; border: 1px solid {{ border_color }};">
+                            {{ item.result }}
+                        </span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; font-size: 0.8rem;">
+                        {% if item.metric_val %}
+                        <span style="background: rgba(0, 229, 255, 0.1); color: #00e5ff; padding: 2px 8px; border-radius: 4px; font-family: monospace; font-size: 0.75rem;">
+                            {{ item.metric_val }}
+                        </span>
+                        {% endif %}
+                        <span style="font-weight: 700; color: {{ bar_color }}; font-size: 0.85rem;">
+                            Anomaly: {{ score_val }}%
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Metric Score Bar -->
+                <div style="width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; overflow: hidden; margin-bottom: 8px;">
+                    <div style="width: {{ score_val }}%; height: 100%; background: linear-gradient(90deg, {{ bar_color }}88, {{ bar_color }}); border-radius: 3px; transition: width 0.4s ease;"></div>
+                </div>
+
+                <!-- Detail description -->
+                <div style="font-size: 0.82rem; color: #b0bec5; line-height: 1.4;">
+                    {{ item.detail }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if attention_plot %}
+    <div style="margin-top: 24px;">
+        <h3 style="font-size: 1rem; color: #00e5ff; margin-bottom: 8px;">Temporal BiGRU Attention Sequence:</h3>
+        <img src="{{ url_for('static', filename='uploads/' + attention_plot) }}" style="width: 100%; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);" alt="Temporal Attention Plot">
+    </div>
+    {% endif %}
+
 
 </div>
 
@@ -350,17 +423,17 @@
 
     <p>
         <span>Model Used</span>
-        <b>Vision Transformer (ViT)</b>
+        <b>{% if media_type == 'video' %}OriginX Ensemble (ViT + BiGRU + Artifacts){% else %}Vision Transformer (ViT){% endif %}</b>
     </p>
 
     <p>
         <span>Input Type</span>
-        <b>Image</b>
+        <b>{{ media_type|capitalize }}</b>
     </p>
 
     <p>
         <span>Explainability</span>
-        <b>Grad-CAM</b>
+        <b>Grad-CAM + BiGRU Attention</b>
     </p>
 
     <p>
@@ -368,9 +441,61 @@
         <b>Completed</b>
     </p>
 
+    {% if detector_scores %}
+    <h3 style="margin-top: 24px; font-size: 0.95rem; color: #00e5ff; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">
+        Ensemble Metric Scorecard
+    </h3>
+
+    {% set vit_val = (detector_scores.vit_temporal * 100)|round(1) %}
+    <div style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+            <span style="color: #cbd5e1;">ViT Sequence Score</span>
+            <b style="color: {% if vit_val >= 60 %}#ff3366{% elif vit_val >= 35 %}#ffab00{% else %}#00e676{% endif %};">{{ vit_val }}%</b>
+        </div>
+        <div style="width: 100%; height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;">
+            <div style="width: {{ vit_val }}%; height: 100%; background: {% if vit_val >= 60 %}#ff3366{% elif vit_val >= 35 %}#ffab00{% else %}#00e676{% endif %};"></div>
+        </div>
+    </div>
+
+    {% set ident_val = (detector_scores.identity_consistency * 100)|round(1) %}
+    <div style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+            <span style="color: #cbd5e1;">Identity Consistency</span>
+            <b style="color: {% if ident_val <= 60 %}#ff3366{% elif ident_val <= 75 %}#ffab00{% else %}#00e676{% endif %};">{{ ident_val }}%</b>
+        </div>
+        <div style="width: 100%; height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;">
+            <div style="width: {{ ident_val }}%; height: 100%; background: {% if ident_val <= 60 %}#ff3366{% elif ident_val <= 75 %}#ffab00{% else %}#00e676{% endif %};"></div>
+        </div>
+    </div>
+
+    {% set art_val = (detector_scores.artifact_score * 100)|round(1) %}
+    <div style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+            <span style="color: #cbd5e1;">Artifact Anomaly</span>
+            <b style="color: {% if art_val >= 60 %}#ff3366{% elif art_val >= 35 %}#ffab00{% else %}#00e676{% endif %};">{{ art_val }}%</b>
+        </div>
+        <div style="width: 100%; height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;">
+            <div style="width: {{ art_val }}%; height: 100%; background: {% if art_val >= 60 %}#ff3366{% elif art_val >= 35 %}#ffab00{% else %}#00e676{% endif %};"></div>
+        </div>
+    </div>
+
+    {% set temp_val = (detector_scores.temporal_consistency * 100)|round(1) %}
+    <div style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+            <span style="color: #cbd5e1;">Temporal Coherence</span>
+            <b style="color: {% if temp_val <= 60 %}#ff3366{% elif temp_val <= 75 %}#ffab00{% else %}#00e676{% endif %};">{{ temp_val }}%</b>
+        </div>
+        <div style="width: 100%; height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;">
+            <div style="width: {{ temp_val }}%; height: 100%; background: {% if temp_val <= 60 %}#ff3366{% elif temp_val <= 75 %}#ffab00{% else %}#00e676{% endif %};"></div>
+        </div>
+    </div>
+    {% endif %}
+
+
 </div>
 
 </div>
+
 
 
 
@@ -378,19 +503,16 @@
 
 <div class="actions">
 
-    <button>
-        ⇩ Download Report
-    </button>
+    <a href="{{ url_for('download_report', filename=filename, media_type=media_type, prediction=prediction, confidence=confidence, risk=risk, region=influential_region) }}" class="analyze-btn" style="text-decoration: none; padding: 12px 20px; background: #00e5ff; color: #000; border-radius: 8px; font-weight: bold; display: inline-block;">
+        ⇩ Download PDF Report
+    </a>
 
-    <a href="{{ url_for('index') }}">
+    <a href="{{ url_for('index') }}" style="text-decoration: none; padding: 12px 20px; background: rgba(255,255,255,0.1); color: #fff; border-radius: 8px; display: inline-block;">
         ⟳ Analyze Another
     </a>
 
-    <button class="primary">
-        ⌯ Share Result
-    </button>
-
 </div>
+
 
 
 </section>

@@ -25,43 +25,31 @@ class ViTGradCAM:
         self.target_layer = self.model.vit.layers[-1]
 
     def reshape_transform(self, tensor):
-
         """
         Convert ViT token representation into
         spatial feature representation.
+        Handles non-square token shapes robustly.
         """
-
         # Remove CLS token
         tensor = tensor[:, 1:, :]
 
-        # Calculate patch grid
         number_of_patches = tensor.shape[1]
+        grid_h = int(np.floor(np.sqrt(number_of_patches)))
+        grid_w = int(np.ceil(number_of_patches / grid_h))
 
-        grid_size = int(
-            np.sqrt(number_of_patches)
-        )
-
-        # [batch, patches, features]
-        # ->
-        # [batch, height, width, features]
+        if grid_h * grid_w != number_of_patches:
+            grid_h = int(round(np.sqrt(number_of_patches)))
+            grid_w = grid_h
 
         tensor = tensor.reshape(
             tensor.shape[0],
-            grid_size,
-            grid_size,
+            grid_h,
+            grid_w,
             tensor.shape[2]
         )
 
-        # ->
-        # [batch, features, height, width]
-
-        tensor = tensor.permute(
-            0,
-            3,
-            1,
-            2
-        )
-
+        # [batch, height, width, features] -> [batch, features, height, width]
+        tensor = tensor.permute(0, 3, 1, 2)
         return tensor
 
 
@@ -80,9 +68,15 @@ class ViTGradCAM:
         # LOAD IMAGE
         # ==============================
 
-        image = Image.open(
-            image_path
-        ).convert("RGB")
+        if hasattr(self.detector, 'load_image'):
+            image = self.detector.load_image(image_path)
+        else:
+            try:
+                image = Image.open(image_path).convert("RGB")
+            except Exception:
+                img_bgr = cv2.imread(image_path)
+                image = Image.fromarray(cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB))
+
 
 
         # Original image for visualization
@@ -245,12 +239,10 @@ class ViTGradCAM:
         max_idx = np.argmax(smoothed_cam)
         cy_orig, cx_orig = np.unravel_index(max_idx, smoothed_cam.shape)
 
-        # 2. Detect face using OpenCV Haar Cascade
-        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        
-        # Convert to grayscale for face detection
-        gray_img = cv2.cvtColor(original_image, cv2.COLOR_RGB2GRAY)
-        faces = face_cascade.detectMultiScale(gray_img, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+        # 2. Detect face safely using detector's face detector helper
+        faces = []
+        if hasattr(self.detector, 'detect_faces'):
+            faces = self.detector.detect_faces(original_image)
 
         if len(faces) > 0:
             # Find the largest face
@@ -260,7 +252,7 @@ class ViTGradCAM:
             # 3. Check where the centroid falls relative to the face
             if fx <= cx_orig <= fx + fw and fy <= cy_orig <= fy + fh:
                 # Inside the face box
-                relative_y = (cy_orig - fy) / fh
+                relative_y = (cy_orig - fy) / max(1.0, float(fh))
                 if relative_y < 0.33:
                     influential_region = "Eyes / Forehead"
                 elif relative_y < 0.66:
@@ -268,7 +260,6 @@ class ViTGradCAM:
                 else:
                     influential_region = "Mouth / Chin"
             else:
-                # Check if it's near the face boundary (within 20% of face width/height)
                 margin_x = int(fw * 0.2)
                 margin_y = int(fh * 0.2)
                 if (fx - margin_x) <= cx_orig <= (fx + fw + margin_x) and \
@@ -277,7 +268,8 @@ class ViTGradCAM:
                 else:
                     influential_region = "Background / Other image region"
         else:
-            influential_region = "Other image region"
+            influential_region = "Background / Global Image Features"
+
 
         print("Most influential region:", influential_region)
 

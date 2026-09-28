@@ -111,22 +111,24 @@
         </div>
 
 
-        <form method="POST"
+        <form action="{{ url_for('index') }}"
+              method="POST"
               enctype="multipart/form-data">
+
 
 
             <label>
                 Select media type
             </label>
 
-            <select name="media_type" class="select-box" style="appearance: none; -webkit-appearance: none; background-color: transparent; border: 1px solid #222; border-radius: 8px; color: white; cursor: pointer; outline: none;">
-                <option style="background-color: #111; color: white;" value="image">Image</option>
-                <option style="background-color: #111; color: white;" value="video">Video</option>
-                <option style="background-color: #111; color: white;" value="audio">Audio</option>
+            <select name="media_type" id="mediaTypeSelect" class="select-box" style="appearance: none; -webkit-appearance: none; background-color: #111; border: 1px solid #333; border-radius: 8px; color: white; cursor: pointer; outline: none; padding: 10px 14px; width: 100%; margin-bottom: 15px;">
+                <option value="image">Image</option>
+                <option value="video">Video</option>
+                <option value="audio">Audio</option>
             </select>
 
 
-            <label>
+            <label id="chooseMediaLabel">
                 Choose image
             </label>
 
@@ -144,8 +146,8 @@
                         Drop image here or browse
                     </strong>
 
-                    <small>
-                        Images, Video, or Audio
+                    <small id="supportedFormatsText">
+                        Supports PNG, JPG, JPEG, WEBP
                     </small>
 
                 </div>
@@ -157,7 +159,7 @@
                 id="fileInput"
                 type="file"
                 name="file"
-                accept=".png,.jpg,.jpeg,.webp,.mp4,.avi,.mov,.mp3,.wav,.m4a"
+                accept=".png,.jpg,.jpeg,.webp"
                 hidden
             >
 
@@ -172,9 +174,10 @@
 
 
             <button class="analyze-btn"
+                    id="submitBtn"
                     type="submit">
 
-                <span>
+                <span id="submitBtnText">
                     Analyze Image
                 </span>
 
@@ -187,7 +190,7 @@
         </form>
 
 
-        <div class="secure">
+        <div class="secure" id="secureNotice">
             ✓ Image securely processed by OriginX
         </div>
 
@@ -280,25 +283,60 @@
 
 
 <script>
+const mediaTypeSelect = document.getElementById("mediaTypeSelect");
+const chooseMediaLabel = document.getElementById("chooseMediaLabel");
+const fileName = document.getElementById("fileName");
+const supportedFormatsText = document.getElementById("supportedFormatsText");
+const fileInput = document.getElementById("fileInput");
+const submitBtnText = document.getElementById("submitBtnText");
+const secureNotice = document.getElementById("secureNotice");
 
-const input =
-    document.getElementById("fileInput");
-
-const fileName =
-    document.getElementById("fileName");
-
-input.addEventListener("change", function () {
-
-    if (this.files.length > 0) {
-
-        fileName.textContent =
-            this.files[0].name;
-
+const config = {
+    image: {
+        label: "Choose image",
+        dropText: "Drop image here or browse",
+        formats: "Supports PNG, JPG, JPEG, WEBP",
+        accept: ".png,.jpg,.jpeg,.webp",
+        btnText: "Analyze Image",
+        secure: "✓ Image securely processed by OriginX"
+    },
+    video: {
+        label: "Choose video file",
+        dropText: "Drop video here or browse",
+        formats: "Supports MP4, AVI, MOV",
+        accept: ".mp4,.avi,.mov",
+        btnText: "Analyze Video",
+        secure: "✓ Video frames securely processed by OriginX"
+    },
+    audio: {
+        label: "Choose audio file",
+        dropText: "Drop audio track here or browse",
+        formats: "Supports MP3, WAV, M4A",
+        accept: ".mp3,.wav,.m4a",
+        btnText: "Analyze Audio Track",
+        secure: "✓ Audio spectrum securely processed by OriginX"
     }
+};
 
+mediaTypeSelect.addEventListener("change", function() {
+    const val = this.value;
+    if (config[val]) {
+        chooseMediaLabel.textContent = config[val].label;
+        fileName.textContent = config[val].dropText;
+        supportedFormatsText.textContent = config[val].formats;
+        fileInput.accept = config[val].accept;
+        submitBtnText.textContent = config[val].btnText;
+        secureNotice.textContent = config[val].secure;
+    }
 });
 
+fileInput.addEventListener("change", function () {
+    if (this.files.length > 0) {
+        fileName.textContent = this.files[0].name;
+    }
+});
 </script>
+
 
 </body>
 
